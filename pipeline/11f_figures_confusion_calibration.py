@@ -1,4 +1,4 @@
-"""Paso 11f: figuras suplementarias S1 (matrices de confusión) y S9 (calibración por deciles)."""
+"""Paso 11f: matrices de confusión y calibración por deciles."""
 import locale
 
 import matplotlib
