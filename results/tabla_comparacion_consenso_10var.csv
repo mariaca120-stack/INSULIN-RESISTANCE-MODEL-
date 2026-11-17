@@ -1,0 +1,9 @@
+Modelo,Conjunto de variables,AUC-ROC,Accuracy,F1-Score
+RF,Completo (43 var),0.8508,0.7708,0.7071
+RF,Consenso (10 var),0.8447,0.7697,0.7104
+SVM,Completo (43 var),0.8468,0.7642,0.7265
+SVM,Consenso (10 var),0.8427,0.7675,0.7339
+XGBoost,Completo (43 var),0.8581,0.7817,0.747
+XGBoost,Consenso (10 var),0.8532,0.7708,0.7337
+TabPFN,Completo (43 var),0.8653,0.7856,0.7528
+TabPFN,Consenso (10 var),0.859,0.7713,0.7391

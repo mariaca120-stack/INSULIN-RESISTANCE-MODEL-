@@ -1,0 +1,25 @@
+{
+ "RF": {
+  "n_estimators": 200,
+  "max_depth": null,
+  "min_samples_leaf": 1,
+  "min_samples_split": 2,
+  "max_features": "sqrt"
+ },
+ "SVM": {
+  "C": 1,
+  "degree": 4,
+  "gamma": "scale",
+  "kernel": "rbf"
+ },
+ "XGB": {
+  "n_estimators": 300,
+  "max_depth": 4,
+  "learning_rate": 0.03,
+  "subsample": 0.8,
+  "colsample_bytree": 0.6,
+  "min_child_weight": 10,
+  "gamma": 0.1,
+  "scale_pos_weight": 1.398950131233596
+ }
+}

@@ -1,0 +1,17 @@
+# secrets and local environment
+.tabpfn_token
+.env
+.venv/
+venv/
+__pycache__/
+.DS_Store
+.ipynb_checkpoints/
+# downloaded NHANES files, generated figures, logs and intermediate files
+data/raw/
+figures/
+*.log
+results/_chunk_*.npy
+results/_respaldo*/
+# manuscript files and backups (not part of the code)
+*.docx
+# trained models ARE versioned (models/*.pkl); the TabPFN model is never saved

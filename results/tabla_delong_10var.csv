@@ -1,0 +1,5 @@
+Modelo,AUC completo,AUC consenso,Diferencia,z,p-valor,Significativo (α=0.05)
+RF,0.8408,0.8265,0.0144,2.028,0.0425,Sí
+SVM,0.8409,0.8321,0.0088,0.876,0.3808,No
+XGBoost,0.8496,0.833,0.0167,2.748,0.006,Sí
+TabPFN,0.8606,0.849,0.0116,1.967,0.0492,Sí

@@ -1,0 +1,77 @@
+{
+ "consenso": [
+  "IMC",
+  "CINTURA",
+  "TRIGLICERIDOS",
+  "COLESTEROL_HDL",
+  "ALT",
+  "VITAMINA_D",
+  "PROTEINA_C_REACTIVA",
+  "PULSO",
+  "EDAD",
+  "HIERRO"
+ ],
+ "n85": {
+  "rf": 18,
+  "xgb": 18,
+  "tabpfn": 14
+ },
+ "paneles": {
+  "rf": [
+   "IMC",
+   "CINTURA",
+   "TRIGLICERIDOS",
+   "COLESTEROL_HDL",
+   "BRAZO",
+   "CADERA",
+   "ALT",
+   "VITAMINA_D",
+   "PROTEINA_C_REACTIVA",
+   "PULSO",
+   "EDAD",
+   "HIERRO",
+   "PAD",
+   "INGESTA_FIBRA",
+   "COLESTEROL_LDL",
+   "INGESTA_AZUCAR",
+   "CPK",
+   "INGESTA_CALORIAS"
+  ],
+  "xgb": [
+   "CINTURA",
+   "TRIGLICERIDOS",
+   "IMC",
+   "ALT",
+   "VITAMINA_D",
+   "COLESTEROL_HDL",
+   "PULSO",
+   "EDAD",
+   "BRAZO",
+   "AST",
+   "HIERRO",
+   "PROTEINA_C_REACTIVA",
+   "DX_HIPERTENSION",
+   "INGESTA_PROTEINA",
+   "CADERA",
+   "INGESTA_AZUCAR",
+   "MAS_100_CIGARRILLOS",
+   "COLESTEROL_LDL"
+  ],
+  "tabpfn": [
+   "CINTURA",
+   "ALT",
+   "IMC",
+   "TRIGLICERIDOS",
+   "AST",
+   "COLESTEROL_HDL",
+   "PULSO",
+   "EDAD",
+   "VITAMINA_D",
+   "DX_HIPERTENSION",
+   "PROTEINA_C_REACTIVA",
+   "USO_HIPOLIPEMIANTES",
+   "MAS_100_CIGARRILLOS",
+   "HIERRO"
+  ]
+ }
+}

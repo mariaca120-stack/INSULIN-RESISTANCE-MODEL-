@@ -1,0 +1,4 @@
+Comparación,Diferencia AUC,p
+TabPFN vs XGBoost,0.011,0.0749
+TabPFN vs Random Forest,0.0198,0.0098
+TabPFN vs SVM,0.0197,0.026

@@ -1,0 +1,62 @@
+Variable,Categoria,Overall_Sin_RI,Overall_Con_RI,p_overall,Test_usado_overall
+GENERO,Hombre,538 (40.4%),451 (47.4%),0.001,Chi-cuadrado
+,Mujer,795 (59.6%),501 (52.6%),,
+ETNIA,Mexicano-Americano,72 (5.4%),87 (9.1%),0.0074,Chi-cuadrado
+,Otro Hispano,130 (9.8%),91 (9.6%),,
+,Blanco no Hispano,869 (65.2%),572 (60.1%),,
+,Negro no Hispano,123 (9.2%),107 (11.2%),,
+,Asiatico no Hispano,61 (4.6%),41 (4.3%),,
+,Otra raza / Multirracial,78 (5.9%),54 (5.7%),,
+NIVEL_EDUCATIVO,Menos de 9° grado,24 (1.8%),43 (4.5%),0.0,Chi-cuadrado
+,9°-11° grado (incompleto),65 (4.9%),58 (6.1%),,
+,Bachillerato / GED,240 (18.0%),195 (20.5%),,
+,Universidad incompleta / AA,375 (28.1%),316 (33.2%),,
+,Universidad completa o superior,629 (47.2%),340 (35.7%),,
+DX_HIPERTENSION,Si,343 (25.7%),373 (39.2%),0.0,Chi-cuadrado
+,No,990 (74.3%),579 (60.8%),,
+DX_HIPERCOLESTEROLEMIA,Si,461 (34.6%),385 (40.4%),0.0049,Chi-cuadrado
+,No,872 (65.4%),567 (59.6%),,
+USO_HIPOLIPEMIANTES,Si,253 (19.0%),245 (25.7%),0.0001,Chi-cuadrado
+,No,1080 (81.0%),707 (74.3%),,
+DX_PREDIABETES,Si,137 (10.3%),174 (18.3%),0.0,Chi-cuadrado
+,No,1196 (89.7%),778 (81.7%),,
+MAS_100_CIGARRILLOS,Si,493 (37.0%),343 (36.0%),0.6722,Chi-cuadrado
+,No,840 (63.0%),609 (64.0%),,
+ALCOHOL_VIDA,Si,1225 (91.9%),856 (89.9%),0.1179,Chi-cuadrado
+,No,108 (8.1%),96 (10.1%),,
+INTENTO_PERDIDA_PESO,Si,558 (41.9%),547 (57.5%),0.0,Chi-cuadrado
+,No,775 (58.1%),405 (42.5%),,
+EDAD,-,54.00 [36.00–66.00],54.00 [35.00–67.00],0.8595,Mann-Whitney
+PESO,-,71.50 [62.10–82.20],90.30 [77.07–104.30],0.0,Mann-Whitney
+ALTURA,-,166.20 [160.20–173.90],167.80 [160.40–174.80],0.0406,Mann-Whitney
+IMC,-,25.50 [23.00–28.70],31.60 [27.90–36.40],0.0,Mann-Whitney
+CINTURA,-,90.60 [82.80–99.80],107.00 [98.00–117.80],0.0,Mann-Whitney
+BRAZO,-,31.00 [28.50–34.00],35.40 [32.60–38.50],0.0,Mann-Whitney
+CADERA,-,100.50 [95.50–107.60],110.50 [103.30–121.80],0.0,Mann-Whitney
+PAD,-,72.00 [66.00–79.00],76.00 [69.00–83.00],0.0,Mann-Whitney
+PAS,-,117.00 [108.00–130.00],119.00 [110.00–131.00],0.0071,Mann-Whitney
+PULSO,-,66.00 [60.00–75.00],70.50 [63.00–78.00],0.0,Mann-Whitney
+GLUCOSA,-,96.00 [91.00–101.00],103.00 [98.00–110.00],0.0,Mann-Whitney
+INSULINA,-,5.96 [4.31–7.84],15.32 [12.30–20.82],0.0,Mann-Whitney
+HOMA_IR,-,1.44 [1.01–1.90],3.87 [3.07–5.41],0.0,Mann-Whitney
+COLESTEROL_HDL,-,59.00 [50.00–69.00],49.00 [41.75–56.00],0.0,Mann-Whitney
+TRIGLICERIDOS,-,82.00 [62.00–109.00],117.00 [86.00–164.00],0.0,Mann-Whitney
+COLESTEROL_LDL,-,111.00 [87.00–136.00],108.00 [86.00–136.00],0.6449,Mann-Whitney
+COLESTEROL_TOTAL,-,191.00 [163.00–217.00],185.00 [159.00–215.00],0.0327,Mann-Whitney
+PROTEINA_C_REACTIVA,-,1.21 [0.58–2.64],2.83 [1.22–5.76],0.0,Mann-Whitney
+ALT,-,16.00 [12.00–22.00],20.00 [15.00–29.00],0.0,Mann-Whitney
+AST,-,20.00 [17.00–25.00],20.00 [17.00–24.00],0.8965,Mann-Whitney
+BUN,-,5.00 [3.90–6.10],5.00 [3.90–6.10],0.6767,Mann-Whitney
+CREATININA,-,0.82 [0.71–0.97],0.85 [0.72–1.01],0.0093,Mann-Whitney
+CPK,-,96.00 [68.00–146.00],98.00 [67.00–154.25],0.4306,Mann-Whitney
+HIERRO,-,96.00 [74.00–122.00],89.00 [67.00–110.00],0.0,Mann-Whitney
+MAGNESIO,-,2.00 [1.90–2.10],2.00 [1.90–2.10],0.6337,Mann-Whitney
+VITAMINA_D,-,81.50 [62.60–105.00],70.90 [50.08–95.95],0.0,Mann-Whitney
+INGESTA_CALORIAS,-,1842.00 [1388.00–2458.00],1925.00 [1409.50–2526.25],0.2523,Mann-Whitney
+INGESTA_PROTEINA,-,68.53 [50.51–92.99],68.43 [49.64–93.03],0.8171,Mann-Whitney
+INGESTA_CARBOHIDRATOS,-,200.48 [147.06–276.88],210.76 [153.06–279.32],0.3056,Mann-Whitney
+INGESTA_AZUCAR,-,81.00 [49.84–126.74],86.84 [55.26–127.83],0.0632,Mann-Whitney
+INGESTA_FIBRA,-,15.20 [10.40–22.70],14.20 [9.57–20.60],0.0004,Mann-Whitney
+INGESTA_GRASAS,-,73.74 [52.05–104.80],78.75 [51.98–110.11],0.0848,Mann-Whitney
+TIEMPO_SENTADO,-,300.00 [180.00–480.00],360.00 [240.00–480.00],0.0004,Mann-Whitney
+ACTIVIDAD_MODERADA_MIN_SEMANA,-,140.00 [60.00–300.00],120.00 [30.00–240.00],0.0,Mann-Whitney

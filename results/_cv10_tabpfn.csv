@@ -1,0 +1,2 @@
+Modelo,Conjunto de variables,AUC-ROC,Accuracy,F1-Score
+TabPFN,Consenso (10 var),0.859,0.7713,0.7391
