@@ -1,13 +1,5 @@
-"""Step 05 - Test-set metrics with 95% confidence intervals, DeLong comparison of TabPFN against the other models,
-and net benefit at a grid of thresholds (original, uncalibrated probabilities).
-
-Input : results/probabilidades_test.csv (step 04)
-Output: results/metricas_test_ic95.csv, results/delong_tabpfn_vs_otros.csv, results/dca_completa.csv
-
-- AUC-ROC: 95% CI by the DeLong method.
-- Sensitivity, specificity, PPV, NPV, F1 (threshold 0.5), PR-AUC and Brier score: 95% percentile CI from a
-  class-stratified non-parametric bootstrap (2000 replicates, seed 42).
-"""
+"""Paso 05: métricas del conjunto de prueba con intervalos de confianza del 95 % (DeLong para el AUC, bootstrap para el resto),
+comparación de TabPFN con los demás modelos (DeLong) y beneficio neto."""
 import numpy as np
 import pandas as pd
 from scipy import stats
@@ -38,7 +30,7 @@ def midrank(x):
 
 
 def delong_components(yt, preds):
-    """AUCs and their covariance matrix (fast DeLong; preds has shape [n_models, n])."""
+    """AUC y su matriz de covarianza (DeLong rápido; preds tiene forma [n_modelos, n])."""
     yt = np.asarray(yt)
     orden = (-yt).argsort()
     P_ = np.asarray(preds)[:, orden]
@@ -92,7 +84,7 @@ tabla = pd.DataFrame(filas)[columnas]
 tabla.to_csv(RESULTS / "metricas_test_ic95.csv", index=False)
 print(tabla[["Modelo", "AUC", "AUC_lo", "AUC_hi", "Sens", "Espec", "F1", "Brier"]].round(3).to_string(index=False))
 
-# DeLong: TabPFN against each other model (paired)
+# prueba de DeLong: TabPFN frente a los otros modelos
 filas = []
 for otro, etiqueta in [("XGBoost", "TabPFN vs XGBoost"), ("Random Forest", "TabPFN vs Random Forest"), ("SVM", "TabPFN vs SVM")]:
     aucs, cov = delong_components(y, np.vstack([P["TabPFN"].to_numpy(), P[otro].to_numpy()]))
@@ -102,7 +94,7 @@ for otro, etiqueta in [("XGBoost", "TabPFN vs XGBoost"), ("Random Forest", "TabP
 pd.DataFrame(filas).to_csv(RESULTS / "delong_tabpfn_vs_otros.csv", index=False)
 print(pd.DataFrame(filas).to_string(index=False))
 
-# Net benefit (decision curve) at thresholds 0.05, 0.10, ..., 0.80
+# beneficio neto
 prev = y.mean()
 
 

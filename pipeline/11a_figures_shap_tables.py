@@ -1,5 +1,4 @@
-"""Step 11a - SHAP importance tables (43 variables and consensus panel) and figures: heat maps (Figures 3 and 5A), TabPFN beeswarm of
-the consensus panel (Figure 5B) and S7/S8. Probability scale, full training set (n = 1828). Requires step 08 (all modes)."""
+"""Paso 11a: tablas de importancia SHAP y figuras (mapas de calor y gráficos de enjambre)."""
 import locale, sys
 from pathlib import Path
 import matplotlib
@@ -13,7 +12,7 @@ from config import ROOT as BASE, DATA, DATA as D, MODELS, RESULTS as R, FIGURES 
 
 SEED, TARGET, N_SHAP, UMBRAL = 42, "RESISTENCIA_INSULINA", 458, 0.85
 try:
-    locale.setlocale(locale.LC_NUMERIC, "es_ES.UTF-8")   # decimal comma in the figures (optional)
+    locale.setlocale(locale.LC_NUMERIC, "es_ES.UTF-8")   # coma decimal en las figuras (opcional)
 except locale.Error:
     pass
 plt.rcParams.update({"font.family": "Arial", "axes.formatter.use_locale": True})
@@ -31,7 +30,7 @@ train = pd.read_csv(D / "train_modelo.csv")
 X_all = train.drop(columns=[TARGET])
 X_shap = X_all  # conjunto de entrenamiento completo (n = 1828)
 
-# ---------- 43 variables, escala de probabilidad
+# 43 variables
 v43 = {m: np.load(R / f"shap_todo_prob_{m}.npy") for m in ["rf", "xgb", "tabpfn"]}
 for m, v in v43.items():
     assert v.shape == X_shap.shape and np.isfinite(v).all(), m
@@ -52,7 +51,7 @@ print("85 % por modelo:", {m: len(v) for m, v in sel.items()}, "| consenso:", le
 for a, b in [("rf", "xgb"), ("rf", "tabpfn"), ("xgb", "tabpfn")]:
     print(f"43 var Spearman {a} vs {b}: {spearmanr(imp[f'ranking_{a}'], imp[f'ranking_{b}'])[0]:.2f}")
 
-# Figura 4
+# Figure 4
 p4 = pd.DataFrame({NOM[m]: imp[f"proporcion_{m}"] for m in M})
 p4 = p4.loc[p4.mean(axis=1).sort_values(ascending=False).index[:15]]
 p4.index = [ETIQUETA.get(i, i) for i in p4.index]
@@ -66,7 +65,7 @@ def heat(prop, archivo, size):
     plt.savefig(F / archivo, dpi=300, bbox_inches="tight"); plt.close(); print("guardada", archivo)
 heat(p4, "Figura4_heatmap_shap.png", (6, 7))
 
-# ---------- enjambres
+# beeswarm plots
 ETIQ_C = {**ETIQUETA}
 def enjambre(v, X, nombres, archivo, size, maxd, valores_color=None):
     plt.figure()
@@ -80,7 +79,7 @@ def enjambre(v, X, nombres, archivo, size, maxd, valores_color=None):
 if "--solo43" in sys.argv:
     sys.exit(0)
 
-# ---------- 10 variables de consenso
+# 10 consensus variables
 import json
 assert VARS == json.load(open(R / "consenso_todo.json"))["consenso"], "el consenso cambió"
 vc = {m: np.load(R / f"shap_todo_consenso_prob_{m}.npy") for m in M}

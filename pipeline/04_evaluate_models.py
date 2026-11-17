@@ -1,10 +1,4 @@
-"""Step 04 - Evaluate the four models: test-set metrics, ROC curves, predicted probabilities and cross-validation metrics.
-
-Input : data/processed/{train,test}_modelo.csv and models/*.pkl (step 03)
-Output: results/{tabla_metricas_test,tabla_metricas_cv,probabilidades_test}.csv and figures/*_resultados.png
-TabPFN (v2.5) is fitted here with its fixed configuration (32 estimators, balanced probabilities, seed 42).
-On macOS, run with DYLD_LIBRARY_PATH pointing to torch/lib (see run_all.sh) so XGBoost and PyTorch share OpenMP.
-"""
+"""Paso 04: ajusta TabPFN y evalúa los cuatro modelos en el conjunto de prueba (métricas, curvas ROC, probabilidades)."""
 import os
 import time
 import random
@@ -51,7 +45,7 @@ rf = joblib.load(MODELS / "modelo_random_forest.pkl")
 svm = joblib.load(MODELS / "modelo_svm.pkl")
 xgb = joblib.load(MODELS / "modelo_xgboost.pkl")
 for nombre, modelo in [("RF", rf), ("SVM", svm), ("XGBoost", xgb)]:
-    assert list(modelo.feature_names_in_) == list(X_train.columns), f"{nombre}: columns differ from the data"
+    assert list(modelo.feature_names_in_) == list(X_train.columns), f"{nombre}: las columnas no coinciden con los datos"
 
 configurar_token_tabpfn()
 RUTA_MODELO_TABPFN = TabPFNClassifier.create_default_for_version(ModelVersion.V2_5).model_path
@@ -61,7 +55,6 @@ modelo_tabpfn = TabPFNClassifier(**TABPFN_PARAMS)
 modelo_tabpfn.fit(X_train, y_train)
 
 
-# ----
 MODELOS = {"Random Forest": rf, "SVM": svm, "XGBoost": xgb, "TabPFN": modelo_tabpfn}
 
 
@@ -103,16 +96,14 @@ ARCHIVOS_RESULTADOS = {"Random Forest": "rf_resultados.png", "SVM": "svm_resulta
 resultados_test = {nombre: evaluar_en_test(nombre, modelo, X_test, y_test, ARCHIVOS_RESULTADOS[nombre])
                    for nombre, modelo in MODELOS.items()}
 
-# ----
 tabla_metricas_test = pd.DataFrame({m: r["metricas"] for m, r in resultados_test.items()}).T.round(4)
 tabla_metricas_test.to_csv(RESULTS_DIR / "tabla_metricas_test.csv")
 tabla_metricas_test
 
-# Probabilidades predichas en test de los 4 modelos (permiten recalcular métricas, ROC y DCA sin reentrenar)
+# guardar las probabilidades de prueba
 pd.DataFrame({"y_test": y_test.to_numpy(), **{m: r["y_prob"] for m, r in resultados_test.items()}}).to_csv(RESULTS_DIR / "probabilidades_test.csv", index=False)
 tabla_metricas_test
 
-# ----
 plt.figure(figsize=(8, 6))
 for nombre, r in resultados_test.items():
     fpr, tpr, _ = roc_curve(y_test, r["y_prob"])
@@ -126,7 +117,6 @@ plt.tight_layout()
 guardar_figura("comparacion_roc_modelos.png")
 plt.show()
 
-# ----
 modelos_cv = {"RF": rf, "SVM": svm, "XGBoost": xgb, "TabPFN": modelo_tabpfn}
 metricas_cv = {"Accuracy": "accuracy", "Precisión": "precision", "Recall": "recall",
                "F1-Score": "f1", "AUC-ROC": "roc_auc"}

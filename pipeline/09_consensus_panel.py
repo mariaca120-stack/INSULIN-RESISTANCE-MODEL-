@@ -1,9 +1,8 @@
-"""Tabla de parsimonia con el consenso de 10 variables (consenso definido con SHAP en escala de probabilidad).
-Misma validación cruzada que el cuaderno (StratifiedKFold 5, semilla 42, métricas medias en entrenamiento).
-    python pipeline/09_consensus_panel.py skl      # RF, SVM, XGBoost
-    python pipeline/09_consensus_panel.py tabpfn   # TabPFN (proceso aparte por OpenMP)
-    python pipeline/09_consensus_panel.py unir     # une con las filas 'Completo' de la tabla original
-"""
+"""Paso 09: reentrena los modelos con las 10 variables de consenso y los compara con los modelos completos.
+
+    python pipeline/09_consensus_panel.py skl
+    python pipeline/09_consensus_panel.py tabpfn
+    python pipeline/09_consensus_panel.py unir"""
 import json, os, sys, time
 from pathlib import Path
 from config import ROOT as BASE, DATA, DATA as D, MODELS, RESULTS as R, FIGURES as F, FIGURES as FIG
@@ -19,8 +18,8 @@ SEED, TARGET, UMBRAL = 42, "RESISTENCIA_INSULINA", 0.85
 train = pd.read_csv(D / "train_modelo.csv"); y = train[TARGET].astype(int); X = train.drop(columns=[TARGET])
 
 def consenso():
-    """Consensus panel = intersection of the variables reaching 85% of the cumulative |SHAP| in RF, XGBoost and TabPFN
-    (computed in step 08, mode consenso_arboles, on the full training set)."""
+    """Panel de consenso = intersección de las variables que alcanzan el 85 % del |SHAP| acumulado en RF, XGBoost y TabPFN
+    (calculado en el paso 08, modo consenso_arboles, con todo el conjunto de entrenamiento)."""
     return json.load(open(R / "consenso_todo.json"))["consenso"]
 
 VARS = consenso(); print(len(VARS), VARS, flush=True)
@@ -78,7 +77,7 @@ elif modo == "delong":
                   "z": round(z, 3), "p-valor": round(p, 4), "Significativo (α=0.05)": "Sí" if p < 0.05 else "No"})
     t = pd.DataFrame(f); t.to_csv(R / "tabla_delong_10var.csv", index=False); print(t.to_string(index=False))
 elif modo == "unir":
-    cvt = pd.read_csv(R / "tabla_metricas_cv.csv", header=[0, 1], index_col=0)   # step 04: full models (43 variables)
+    cvt = pd.read_csv(R / "tabla_metricas_cv.csv", header=[0, 1], index_col=0)   # paso 04: modelos completos (43 variables)
     old = pd.DataFrame([{"Modelo": m, "Conjunto de variables": "Completo (43 var)", "AUC-ROC": cvt.loc[m, ("AUC-ROC", "Promedio")],
                          "Accuracy": cvt.loc[m, ("Accuracy", "Promedio")], "F1-Score": cvt.loc[m, ("F1-Score", "Promedio")]}
                         for m in ["RF", "SVM", "XGBoost", "TabPFN"]])

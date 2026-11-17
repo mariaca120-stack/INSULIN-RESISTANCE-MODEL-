@@ -1,5 +1,4 @@
-"""Step 11b - SHAP summary (beeswarm) plots of TabPFN (Figure 4), random forest (S2) and XGBoost (S3), probability scale,
-full training set. Requires step 08 (modes rf43, xgb43, tabpfn43)."""
+"""Paso 11b: gráficos resumen SHAP de TabPFN, random forest y XGBoost."""
 import locale
 import os
 import sys
@@ -20,7 +19,7 @@ from config import ROOT as BASE, DATA, DATA as D, MODELS, RESULTS as R, FIGURES 
 SEED, TARGET, N_SHAP = 42, "RESISTENCIA_INSULINA", 458
 
 try:
-    locale.setlocale(locale.LC_NUMERIC, "es_ES.UTF-8")   # decimal comma in the figures (optional)
+    locale.setlocale(locale.LC_NUMERIC, "es_ES.UTF-8")   # coma decimal en las figuras (opcional)
 except locale.Error:
     pass
 plt.rcParams.update({"font.family": "Arial", "axes.formatter.use_locale": True})
@@ -49,8 +48,7 @@ ETIQUETA = {
     "ETNIA_Asiatico_no_Hispano": "Etnia: asiático no hispano",
     "ETNIA_Otra_raza_Multirracial": "Etnia: otra raza o multirracial",
 }
-# Variables 1 = sí / 2 = no: solo para colorear se recodifican a 1 = sí / 0 = no (rojo = sí). GENERO: 1 = hombre,
-# 2 = mujer -> 1 = mujer / 0 = hombre ("Sexo femenino"). Los valores SHAP no cambian.
+# se recodifican las variables sí/no solo para los colores; los valores SHAP no cambian
 BINARIAS_1SI_2NO = ["DX_HIPERTENSION", "DX_HIPERCOLESTEROLEMIA", "USO_HIPOLIPEMIANTES", "DX_PREDIABETES",
                     "MAS_100_CIGARRILLOS", "ALCOHOL_VIDA", "INTENTO_PERDIDA_PESO"]
 
@@ -90,5 +88,5 @@ def graficar(valores):
         print("guardada", archivo)
 
 
-valores = {m: np.load(R / f"shap_todo_prob_{m}.npy") for m in ["rf", "xgb", "tabpfn"]}   # step 08
+valores = {m: np.load(R / f"shap_todo_prob_{m}.npy") for m in ["rf", "xgb", "tabpfn"]}   # paso 08
 graficar(valores)

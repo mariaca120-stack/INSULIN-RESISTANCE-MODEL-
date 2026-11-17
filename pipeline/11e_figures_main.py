@@ -1,4 +1,4 @@
-"""Figuras finales del manuscrito: Fig. 2 (ROC con TyG + calibración recalibrada), Fig. 5 (panel de consenso: A mapa de calor, B enjambre TabPFN) y Fig. 6 (curvas de decisión con TyG)."""
+"""Paso 11e: figuras principales del artículo (curvas ROC, panel de consenso, curvas de decisión)."""
 import locale
 from pathlib import Path
 import matplotlib
@@ -13,7 +13,7 @@ from sklearn.preprocessing import SplineTransformer
 from config import ROOT as BASE, DATA, DATA as D, MODELS, RESULTS as R, FIGURES as F, FIGURES as FIG
 
 try:
-    locale.setlocale(locale.LC_NUMERIC, "es_ES.UTF-8")   # decimal comma in the figures (optional)
+    locale.setlocale(locale.LC_NUMERIC, "es_ES.UTF-8")   # coma decimal en las figuras (opcional)
 except locale.Error:
     pass
 plt.rcParams.update({"font.family": "Arial", "font.size": 10, "axes.spines.top": False, "axes.spines.right": False, "axes.formatter.use_locale": True})
@@ -32,7 +32,7 @@ def suave(p, yy):
     m = make_pipeline(SplineTransformer(n_knots=4, degree=3, extrapolation="constant"), LogisticRegression(C=1e3, max_iter=2000)).fit(lg(p).reshape(-1, 1), yy)
     g = np.linspace(np.percentile(p, 2), np.percentile(p, 98), 100); return g, m.predict_proba(lg(g).reshape(-1, 1))[:, 1]
 
-# ---- Figura 2
+# Figure 2
 fig, ax = plt.subplots(1, 2, figsize=(10, 4.6))
 for m in MOD:
     fpr, tpr, _ = roc_curve(y, rec[m]); a = ic.loc[m]
@@ -47,7 +47,7 @@ ax[1].set(xlabel="Probabilidad media predicha por decil (recalibrada)", ylabel="
 for a, l in zip(ax, "AB"): a.text(-0.12, 1.03, l, transform=a.transAxes, fontsize=13, fontweight="bold")
 plt.tight_layout(); plt.savefig(F / "Fig2_roc_calibracion.png", dpi=300, bbox_inches="tight"); plt.close()
 
-# ---- Figura 5 (A mapa de calor + B enjambre del panel de consenso)
+# Figure 5
 A_, B_ = mpimg.imread(F / "Figura6_heatmap_shap_consenso.png"), mpimg.imread(F / "Figura7_shap_tabpfn_consenso.png")
 h = 4.6; wa, wb = h * A_.shape[1] / A_.shape[0], h * B_.shape[1] / B_.shape[0]
 fig = plt.figure(figsize=(wa + wb + 0.6, h + 0.3))
@@ -56,7 +56,7 @@ for a, im, l in [(ax1, A_, "A"), (ax2, B_, "B")]:
     a.imshow(im); a.axis("off"); a.text(0.0, 1.0, l, transform=a.transAxes, fontsize=14, fontweight="bold", va="top")
 plt.savefig(F / "Fig5_panel_consenso.png", dpi=300, bbox_inches="tight"); plt.close()
 
-# ---- Figura 6 (curvas de decisión con TyG)
+# Figure 6
 d = pd.read_csv(R / "tyg_dca.csv"); prev = y.mean()
 fig, a = plt.subplots(figsize=(7.2, 4.6))
 for m in MOD: a.plot(d["Umbral"], d[m], c=COLOR[m], lw=1.6, label=m)

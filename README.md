@@ -1,99 +1,103 @@
-# Insulin resistance classification with machine learning (NHANES 2021–2023)
+# Clasificación de la resistencia a la insulina con aprendizaje automático (NHANES 2021–2023)
 
-This repository contains the code for a cross-sectional study that develops and compares machine learning
-models to classify insulin resistance (IR, defined as HOMA-IR > 2.5) in US adults, without using fasting
-insulin or glucose as predictors.
+Este repositorio contiene el código de un estudio transversal que desarrolla y compara modelos de aprendizaje
+automático para clasificar la resistencia a la insulina (RI, definida como HOMA-IR > 2,5) en adultos de Estados
+Unidos, sin usar la insulina ni la glucosa en ayunas como predictores.
 
-## Study summary
+## Resumen del estudio
 
-- **Data:** NHANES 2021–2023 (public). 2,285 adults without diagnosed diabetes (IR prevalence 41.7%), split into
-  training (n = 1,828) and test (n = 457) sets before any preprocessing.
-- **Models:** random forest, SVM, XGBoost and TabPFN (v2.5), compared by discrimination (AUC-ROC), calibration and
-  decision-curve analysis. Probabilities were recalibrated with a logistic intercept/slope fitted on out-of-fold
-  training predictions.
-- **Interpretability:** SHAP values (probability scale) computed on the full training set. A consensus panel of
-  10 variables was defined as the intersection of the variables reaching 85% of cumulative SHAP importance in the
-  three models.
-- **Comparator:** the triglyceride-glucose (TyG) index.
-- **Reporting:** TRIPOD+AI.
+- **Datos:** NHANES 2021–2023 (públicos). 2285 adultos sin diabetes diagnosticada (prevalencia de RI 41,7 %),
+  divididos en entrenamiento (n = 1828) y prueba (n = 457) antes de cualquier preprocesamiento.
+- **Modelos:** random forest, SVM, XGBoost y TabPFN (v2.5), comparados por discriminación (AUC-ROC), calibración
+  y análisis de curvas de decisión. Las probabilidades se recalibraron con un intercepto y una pendiente logísticos
+  ajustados con predicciones de validación cruzada del entrenamiento.
+- **Interpretabilidad:** valores SHAP (escala de probabilidad) calculados con todo el conjunto de entrenamiento.
+  El panel de consenso de 10 variables es la intersección de las variables que alcanzan el 85 % de la importancia
+  SHAP acumulada en los tres modelos.
+- **Comparador:** índice triglicéridos-glucosa (TyG).
+- **Reporte:** TRIPOD+AI.
 
-## Main results
+## Resultados principales
 
-On the test set, TabPFN had the highest AUC-ROC (0.861, 95% CI 0.827–0.894), followed by XGBoost (0.850), random
-forest (0.841) and SVM (0.841), all higher than the TyG index (0.762). The 10-variable panel reduced discrimination
-slightly (TabPFN AUC 0.849).
+En el conjunto de prueba, TabPFN tuvo el mayor AUC-ROC (0,861; IC 95 % 0,827–0,894), seguido de XGBoost (0,850),
+random forest (0,841) y SVM (0,841), todos por encima del índice TyG (0,762). El panel de 10 variables redujo
+levemente la discriminación (AUC de TabPFN 0,849).
 
-## How to run
+## Cómo ejecutarlo
 
-Everything runs from this repository: no Google Drive or manual downloads are needed.
+Todo se ejecuta desde este repositorio: no hace falta Google Drive ni descargas manuales.
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-./run_all.sh                  # reproduces the paper from the datasets and models in this repository (steps 04-11)
-./run_all.sh --retrain        # also repeats the hyperparameter search (step 03) and overwrites models/
-./run_all.sh --from-scratch   # also downloads NHANES from the CDC and rebuilds the datasets (steps 00-02, then 03)
+./run_all.sh                  # reproduce el artículo con los datos y modelos de este repositorio (pasos 04-11)
+./run_all.sh --retrain        # además repite la búsqueda de hiperparámetros (paso 03) y sobrescribe models/
+./run_all.sh --from-scratch   # además descarga NHANES de los CDC y reconstruye los datos (pasos 00-02, luego 03)
 ```
 
-Each step can also be run on its own, e.g. `python pipeline/05_test_metrics_ci.py`. All paths are defined in
-`pipeline/config.py` (relative to the repository root).
+Cada paso también se puede ejecutar por separado, por ejemplo `python pipeline/05_test_metrics_ci.py`.
+Todas las rutas están definidas en `pipeline/config.py` (relativas a la carpeta del repositorio).
 
-| Step | Script | What it does | Main output |
+| Paso | Script | Qué hace | Resultado principal |
 |---|---|---|---|
-| 00 | `pipeline/00_download_nhanes.py` | Downloads the NHANES 2021–2023 `.xpt` modules from the CDC | `data/raw/` |
-| 01 | `pipeline/01_build_dataset.py` | Merges the modules by `SEQN` and renames variables | `data/processed/nhanes_variables.csv` |
-| 02 | `pipeline/02_prepare_data.py` | Cohort, cleaning, HOMA-IR outcome, 80/20 split, MICE imputation, Table 1, VIF | `data/processed/train_modelo.csv`, `test_modelo.csv` |
-| 03 | `pipeline/03_train_models.py` | *(optional)* Random forest, SVM and XGBoost: randomized search with 5-fold CV | `models/*.pkl` |
-| 04 | `pipeline/04_evaluate_models.py` | Fits TabPFN; test metrics, ROC, cross-validation | `results/probabilidades_test.csv`, `tabla_metricas_*.csv` |
-| 05 | `pipeline/05_test_metrics_ci.py` | 95% CIs (DeLong, bootstrap), DeLong comparison, net benefit | `results/metricas_test_ic95.csv` |
-| 06 | `pipeline/06_recalibration.py` | Logistic recalibration with out-of-fold training predictions | `results/probabilidades_test_recal.csv` |
-| 07 | `pipeline/07_recalibrated_metrics_ci.py` | Recalibrated metrics with bootstrap CIs | `results/metricas_test_ic95_recal.csv` |
-| 08 | `pipeline/08_shap_full_training_set.py` | SHAP (probability scale) on all 1,828 training rows; consensus panel | `results/shap_todo_*.npy`, `consenso_todo.json` |
-| 09 | `pipeline/09_consensus_panel.py` | Models retrained with the consensus panel; DeLong test | `results/tabla_comparacion_consenso_10var.csv` |
-| 10 | `pipeline/10_tyg_comparison.py` | Comparison with the TyG index (AUC, net benefit) | `results/tyg_*.csv` |
-| 11 | `pipeline/11*_figures_*.py` | Figures | `figures/` |
+| 00 | `pipeline/00_download_nhanes.py` | Descarga los módulos `.xpt` de NHANES 2021–2023 desde los CDC | `data/raw/` |
+| 01 | `pipeline/01_build_dataset.py` | Une los módulos por `SEQN` y renombra las variables | `data/processed/nhanes_variables.csv` |
+| 02 | `pipeline/02_prepare_data.py` | Cohorte, limpieza, desenlace HOMA-IR, partición 80/20, imputación MICE, Tabla 1, VIF | `data/processed/train_modelo.csv`, `test_modelo.csv` |
+| 03 | `pipeline/03_train_models.py` | *(opcional)* Random forest, SVM y XGBoost: búsqueda aleatoria con validación cruzada de 5 particiones | `models/*.pkl` |
+| 04 | `pipeline/04_evaluate_models.py` | Ajusta TabPFN; métricas de prueba, ROC, validación cruzada | `results/probabilidades_test.csv`, `tabla_metricas_*.csv` |
+| 05 | `pipeline/05_test_metrics_ci.py` | IC del 95 % (DeLong, bootstrap), comparación de DeLong, beneficio neto | `results/metricas_test_ic95.csv` |
+| 06 | `pipeline/06_recalibration.py` | Recalibración logística con predicciones de validación cruzada del entrenamiento | `results/probabilidades_test_recal.csv` |
+| 07 | `pipeline/07_recalibrated_metrics_ci.py` | Métricas recalibradas con IC por bootstrap | `results/metricas_test_ic95_recal.csv` |
+| 08 | `pipeline/08_shap_full_training_set.py` | SHAP (escala de probabilidad) con las 1828 filas de entrenamiento; panel de consenso | `results/shap_todo_*.npy`, `consenso_todo.json` |
+| 09 | `pipeline/09_consensus_panel.py` | Modelos reentrenados con el panel de consenso; prueba de DeLong | `results/tabla_comparacion_consenso_10var.csv` |
+| 10 | `pipeline/10_tyg_comparison.py` | Comparación con el índice TyG (AUC, beneficio neto) | `results/tyg_*.csv` |
+| 11 | `pipeline/11*_figures_*.py` | Figuras | `figures/` |
 
-Step 08 is the slowest (about 5.5 h for TabPFN on a laptop GPU, resumable). Steps 04-11 take about 8 h in total.
+El paso 08 es el más lento (unas 5,5 h para TabPFN en un portátil con GPU; se puede reanudar). Los pasos 04-11
+toman unas 8 h en total.
 
-## Repository structure
+## Estructura del repositorio
 
-- `pipeline/` – numbered analysis scripts and `config.py`.
-- `data/processed/` – analysis datasets derived from the public NHANES files (training/test sets used in the paper).
-- `models/` – trained random forest, SVM and XGBoost models used in the paper.
-- `results/` – tables and SHAP arrays produced by the analysis.
-- `notebooks/` – the original exploratory notebooks (Colab and local) from which the pipeline was derived. They
-  are kept for reference; the scripts in `pipeline/` are the version to run.
+- `pipeline/` – scripts de análisis numerados y `config.py`.
+- `data/processed/` – conjuntos de datos del análisis derivados de los archivos públicos de NHANES (los de
+  entrenamiento y prueba usados en el artículo).
+- `models/` – modelos entrenados de random forest, SVM y XGBoost usados en el artículo.
+- `results/` – tablas y arreglos SHAP producidos por el análisis.
+- `notebooks/` – los cuadernos originales (Colab y locales) a partir de los cuales se armó el pipeline. Se
+  conservan como referencia; la versión para ejecutar son los scripts de `pipeline/`.
 
-## Reproducibility notes
+## Notas de reproducibilidad
 
-- **Exact replication.** `./run_all.sh` starts from the datasets and models provided in this repository, which are
-  the ones used in the paper (steps 04-11).
-- **Retraining (step 03).** The randomized hyperparameter search is not guaranteed to select the same
-  hyperparameters on another machine or package build (several candidates have almost identical cross-validated
-  AUC). Repeating it on the provided training set selected different random forest and XGBoost settings, with
-  slightly different test AUC (random forest 0.846, XGBoost 0.857 instead of 0.841 and 0.850; SVM unchanged).
-  Use `--retrain` only if you want to repeat the search; the models in `models/` are the ones behind the paper.
-- **Rebuilding from the raw data.** `./run_all.sh --from-scratch` reproduces the cohort exactly (3,483 participants
-  with insulin and glucose; 2,285 analysed; 1,828 / 457 split; same observed values). MICE imputation
-  (miceforest/LightGBM) is not bit-for-bit reproducible across platforms: about 18% of training rows have at least
-  one imputed value that differs slightly. Together with step 03, this means the numbers will not match the paper
-  exactly (they should be very close).
-- **Blood pressure and pulse** use the first of the three oscillometric readings (`BPXOSY1`, `BPXODI1`, `BPXOPLS1`).
-- **Height** is excluded because it is implicit in BMI; total cholesterol and weight are excluded by VIF > 10.
-- **TabPFN** (v2.5) needs a free token (https://ux.priorlabs.ai). Set the environment variable `TABPFN_TOKEN`, or put
-  it in a file named `.tabpfn_token` at the repository root (it is git-ignored; never commit it). The TabPFN model
-  is not saved to disk (the file would exceed 6 GB); it is refitted with a fixed seed in the steps that need it.
-- **macOS.** XGBoost and PyTorch must share one OpenMP runtime; `run_all.sh` sets `DYLD_LIBRARY_PATH` for this.
-  The SHAP, recalibration and consensus steps are also split into separate processes (one per mode).
-- The figures use Spanish labels and decimal commas (they are made for the Spanish-language thesis).
+- **Réplica exacta.** `./run_all.sh` parte de los datos y modelos de este repositorio, que son los usados en el
+  artículo (pasos 04-11).
+- **Reentrenamiento (paso 03).** La búsqueda aleatoria de hiperparámetros no garantiza elegir los mismos valores
+  en otro computador o versión de las librerías (varios candidatos tienen un AUC de validación cruzada casi
+  idéntico). Al repetirla con el entrenamiento provisto se eligieron otros hiperparámetros para random forest y
+  XGBoost, con un AUC de prueba algo distinto (random forest 0,846 y XGBoost 0,857, en lugar de 0,841 y 0,850; SVM
+  sin cambios). Usa `--retrain` solo si quieres repetir la búsqueda; los modelos de `models/` son los del artículo.
+- **Reconstrucción desde los datos originales.** `./run_all.sh --from-scratch` reproduce exactamente la cohorte
+  (3483 participantes con insulina y glucosa; 2285 analizados; partición 1828 / 457; mismos valores observados).
+  La imputación MICE (miceforest/LightGBM) no es idéntica bit a bit entre plataformas: cerca del 18 % de las
+  filas de entrenamiento tienen al menos un valor imputado que difiere levemente. Junto con el paso 03, esto hace
+  que los números no coincidan exactamente con los del artículo (deberían ser muy cercanos).
+- **Presión arterial y pulso:** se usa la primera de las tres lecturas oscilométricas (`BPXOSY1`, `BPXODI1`,
+  `BPXOPLS1`).
+- **Altura:** se excluye porque está implícita en el IMC; el colesterol total y el peso se excluyen por VIF > 10.
+- **TabPFN** (v2.5) necesita un token gratuito (https://ux.priorlabs.ai). Defínelo en la variable de entorno
+  `TABPFN_TOKEN` o guárdalo en un archivo llamado `.tabpfn_token` en la raíz del repositorio (está en
+  `.gitignore`; nunca lo subas). El modelo TabPFN no se guarda en disco (el archivo superaría los 6 GB); se
+  reajusta con una semilla fija en los pasos que lo necesitan.
+- **macOS.** XGBoost y PyTorch deben compartir un mismo OpenMP; `run_all.sh` define `DYLD_LIBRARY_PATH` para esto.
+  Los pasos de SHAP, recalibración y consenso también se dividen en procesos separados (uno por modo).
+- Las figuras usan etiquetas en español y coma decimal (están hechas para la tesis en español).
 
-## Data
+## Datos
 
-NHANES data are public (CDC/NCHS). The raw files are downloaded by step 00; the processed training and test sets
-used in the paper are in `data/processed/`. Variable codes and definitions are in Supplementary Table S1 of the
-paper.
+Los datos de NHANES son públicos (CDC/NCHS). El paso 00 descarga los archivos originales; los conjuntos de
+entrenamiento y prueba usados en el artículo están en `data/processed/`. Los códigos y definiciones de las
+variables están en la Tabla Suplementaria S1 del artículo.
 
-## License
+## Licencia
 
-See `LICENSE`.
+Ver `LICENSE`.

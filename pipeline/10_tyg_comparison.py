@@ -1,7 +1,4 @@
-"""Comparación de los modelos con el índice triglicéridos-glucosa (TyG) en el conjunto de prueba.
-TyG = ln[triglicéridos (mg/dL) x glucosa en ayunas (mg/dL) / 2].  La glucosa se toma de train/test_imputado.csv
-(alineados fila a fila con train/test_modelo.csv; se verifica). El TyG se usa (a) como puntaje continuo (AUC) y (b) como
-única variable de una regresión logística ajustada en entrenamiento, para obtener probabilidades y poder hacer el DCA."""
+"""Paso 10: compara los modelos con el índice triglicéridos-glucosa (TyG) en el conjunto de prueba."""
 from pathlib import Path
 import numpy as np, pandas as pd
 from scipy import stats
@@ -23,7 +20,7 @@ x_tr, y_tr, x_te, y_te = tyg(tr_i).to_numpy(), tr_m[TARGET].astype(int).to_numpy
 P = pd.read_csv(R / "probabilidades_test_recal.csv")   # probabilidades recalibradas (recalibracion.py); assert (P["y_test"].to_numpy() == y_te).all()
 print(f"TyG train: media {x_tr.mean():.2f} (DE {x_tr.std():.2f}) | test: {x_te.mean():.2f} | n test = {len(y_te)} (RI = {y_te.sum()})")
 
-# ---- DeLong (misma implementación que el cuaderno), con IC del AUC
+# DeLong test
 def midrank(x):
     J = np.argsort(x); Z = x[J]; T = np.zeros(len(x)); i = 0
     while i < len(x):
@@ -41,16 +38,16 @@ def comparar(a, b):
     aucs, cov = delong(y_te, [a, b]); d = aucs[0] - aucs[1]; z = d / np.sqrt(cov[0, 0] + cov[1, 1] - 2 * cov[0, 1])
     return d, 2 * (1 - stats.norm.cdf(abs(z)))
 
-# ---- TyG como probabilidad: regresión logística de una variable, ajustada en entrenamiento
+# TyG como probabilidad (regresión logística ajustada en el entrenamiento)
 lr = LogisticRegression(C=1e6, max_iter=1000).fit(x_tr.reshape(-1, 1), y_tr)
 p_tyg = lr.predict_proba(x_te.reshape(-1, 1))[:, 1]
 print(f"Logística TyG: OR por unidad de TyG = {np.exp(lr.coef_[0][0]):.2f}; AUC test = {roc_auc_score(y_te, p_tyg):.4f} (monótona: igual al del TyG crudo {roc_auc_score(y_te, x_te):.4f})")
 
-# ---- Tabla de comparación (AUC con IC 95 % por DeLong; DeLong pareado frente al TyG)
+# comparison table
 modelos = {"TabPFN": P["TabPFN"].to_numpy(), "XGBoost": P["XGBoost"].to_numpy(), "Random Forest": P["Random Forest"].to_numpy(), "SVM": P["SVM"].to_numpy()}
 filas = []
 aucs, cov = delong(y_te, [x_te]); a, se = aucs[0], np.sqrt(cov[0, 0])
-# punto de corte de Youden elegido en ENTRENAMIENTO
+# punto de corte de Youden obtenido en el entrenamiento
 fpr, tpr, thr = roc_curve(y_tr, x_tr); corte = thr[np.argmax(tpr - fpr)]
 pred = x_te >= corte; sens = (pred & (y_te == 1)).sum() / (y_te == 1).sum(); esp = (~pred & (y_te == 0)).sum() / (y_te == 0).sum()
 filas.append({"Modelo": "Índice TyG", "AUC": a, "IC_inf": a - 1.96 * se, "IC_sup": a + 1.96 * se, "Dif_vs_TyG": np.nan, "p_vs_TyG": np.nan,
@@ -62,7 +59,7 @@ for nombre, p in modelos.items():
     filas.append({"Modelo": nombre, "AUC": a, "IC_inf": a - 1.96 * se, "IC_sup": a + 1.96 * se, "Dif_vs_TyG": d, "p_vs_TyG": pv, "Sens": s, "Espec": e})
 T = pd.DataFrame(filas); T.to_csv(R / "tyg_comparacion_auc.csv", index=False); print(T.round(4).to_string(index=False))
 
-# ---- DCA (mismo cálculo que la Figura 3), con el TyG calibrado
+# curva de decisión
 umbrales = np.round(np.arange(0.01, 0.81, 0.01), 2); n = len(y_te); prev = y_te.mean()
 def nb(p, t): return ((p >= t) & (y_te == 1)).sum() / n - ((p >= t) & (y_te == 0)).sum() / n * t / (1 - t)
 dca = pd.DataFrame({"Umbral": umbrales, "Índice TyG": [nb(p_tyg, t) for t in umbrales],
@@ -73,7 +70,7 @@ ref = pd.read_csv(R / "dca_recal_completa.csv"); k = ref["Umbral"].round(2).isin
 chk = dca.set_index("Umbral").loc[ref.loc[k, "Umbral"].round(2), "TabPFN"].to_numpy()
 print("DCA reproduce el de TabPFN del artículo:", np.allclose(chk, ref.loc[k, "TabPFN"].to_numpy(), atol=1e-4), "(archivo guardado redondeado a 4 decimales)")
 
-# ---- Beneficio neto TabPFN/XGBoost menos TyG, con IC 95 % por bootstrap (2000 réplicas, pareado)
+# beneficio neto difference (bootstrap)
 rng = np.random.default_rng(SEED); B = 2000; ts = [0.1, 0.15, 0.2, 0.3, 0.4, 0.5]
 bs = {(m, t): [] for m in ["TabPFN", "XGBoost"] for t in ts}
 for _ in range(B):
@@ -90,7 +87,7 @@ for t in ts:
                   "Intervenciones_evitadas_por_100": obs / (t / (1 - t)) * 100})
 N = pd.DataFrame(f); N.to_csv(R / "tyg_beneficio_neto.csv", index=False); print(N.round(4).to_string(index=False))
 
-# ---- Modelos de consenso (10 variables) frente al TyG
+# consensus models vs TyG
 pc = pd.concat([pd.read_csv(R / "_pred10_skl.csv"), pd.read_csv(R / "_pred10_tabpfn.csv")], axis=1)
 f = []
 for nombre, col in [("TabPFN", "TabPFN"), ("XGBoost", "XGBoost"), ("Random Forest", "RF"), ("SVM", "SVM")]:

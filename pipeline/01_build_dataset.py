@@ -1,21 +1,15 @@
-"""Step 01 - Merge the NHANES modules by SEQN into one consolidated table (data/processed/nhanes_variables.csv).
-
-Columns are renamed to the variable names used throughout the study (see Supplementary Table S1 for the
-NHANES code of each variable). Blood pressure and pulse use the FIRST of the three oscillometric readings
-(BPXOSY1, BPXODI1, BPXOPLS1). Sentinel codes (7/9, 77/99, ...) and the SAS zero artefacts are handled in step 02.
-
-    python pipeline/01_build_dataset.py
-"""
+"""Paso 01: une los archivos de NHANES por SEQN en una sola tabla (data/processed/nhanes_variables.csv).
+La presión arterial y el pulso usan la primera de las tres lecturas."""
 import pandas as pd
 
 from config import DATA, DATA_RAW
 
-# module -> {NHANES variable: study variable}
+# variable de NHANES -> variable del estudio, por archivo
 VARIABLES = {
     "DEMO_L": {"RIAGENDR": "GENERO", "RIDAGEYR": "EDAD", "RIDRETH3": "ETNIA", "DMDEDUC2": "NIVEL_EDUCATIVO"},
     "BMX_L": {"BMXWT": "PESO", "BMXHT": "ALTURA", "BMXBMI": "IMC", "BMXWAIST": "CINTURA", "BMXARMC": "BRAZO",
               "BMXHIP": "CADERA"},
-    "BPXO_L": {"BPXODI1": "PAD", "BPXOSY1": "PAS", "BPXOPLS1": "PULSO"},   # order used in the analysis files
+    "BPXO_L": {"BPXODI1": "PAD", "BPXOSY1": "PAS", "BPXOPLS1": "PULSO"},   # orden usado en los archivos de análisis
     "GLU_L": {"LBXGLU": "GLUCOSA"},
     "INS_L": {"LBXIN": "INSULINA"},
     "HDL_L": {"LBDHDD": "COLESTEROL_HDL"},
@@ -54,6 +48,6 @@ for modulo, columnas in VARIABLES.items():
 assert base["SEQN"].is_unique
 n_ins_glu = int(base[["INSULINA", "GLUCOSA"]].notna().all(axis=1).sum())
 print(f"nhanes_variables.csv: {base.shape[0]} participants x {base.shape[1]} columns")
-print(f"Participants with fasting insulin and glucose: {n_ins_glu} (expected 3483)")
-assert n_ins_glu == 3483, "Unexpected number of participants with fasting insulin and glucose"
+print(f"Participantes con insulina y glucosa en ayunas: {n_ins_glu} (esperado: 3483)")
+assert n_ins_glu == 3483, "Número inesperado de participantes con insulina y glucosa en ayunas"
 base.to_csv(DATA / "nhanes_variables.csv", index=False)

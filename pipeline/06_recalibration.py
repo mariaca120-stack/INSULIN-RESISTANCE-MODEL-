@@ -1,11 +1,9 @@
-"""Recalibración de los cuatro modelos con predicciones de validación cruzada del ENTRENAMIENTO (sin tocar el conjunto de prueba).
-  1) oof:  predicciones fuera de partición (StratifiedKFold 5, semilla 42) de cada modelo en el entrenamiento.
-  2) ajuste: regresión logística de una variable sobre logit(p_oof) -> p_cal = expit(a + b*logit(p)); se aplica a las probabilidades de prueba.
-La recalibración es monótona: no cambia el AUC-ROC ni el orden de las predicciones.
-    python pipeline/06_recalibration.py skl      # RF, SVM, XGBoost (proceso sin torch)
-    python pipeline/06_recalibration.py tabpfn   # TabPFN
-    python pipeline/06_recalibration.py analisis # calibración antes/después, métricas a 0,5, DCA
-"""
+"""Paso 06: recalibra las probabilidades de los cuatro modelos con predicciones de validación cruzada
+del conjunto de entrenamiento.
+
+    python pipeline/06_recalibration.py skl
+    python pipeline/06_recalibration.py tabpfn
+    python pipeline/06_recalibration.py analisis"""
 import os, sys, time
 from pathlib import Path
 from config import ROOT as BASE, DATA, DATA as D, MODELS, RESULTS as R, FIGURES as F, FIGURES as FIG
@@ -74,7 +72,7 @@ elif modo == "analisis":
                           "Brier": est[2], "Brier_lo": lo[2], "Brier_hi": hi[2]})
     K = pd.DataFrame(filas); K.to_csv(R / "tabla_calibracion_recal.csv", index=False); print(K.round(3).to_string(index=False))
 
-    # métricas a 0,5 (originales y recalibradas)
+    # métricas con umbral 0,5
     f = []
     for etiqueta, S in [("Original", {m: P[m].to_numpy() for m in NOMBRES}), ("Recalibrado", rec)]:
         for m in NOMBRES:
@@ -84,7 +82,7 @@ elif modo == "analisis":
                       "Exactitud": (tp + tn) / n})
     M05 = pd.DataFrame(f); M05.to_csv(R / "tabla_metricas_0_5_recal.csv", index=False); print(M05.round(3).to_string(index=False))
 
-    # DCA
+    # curva de decisión
     ths = np.round(np.arange(0.01, 0.81, 0.01), 2); prev = y.mean()
     nb = lambda p, t: ((p >= t) & (y == 1)).sum() / n - ((p >= t) & (y == 0)).sum() / n * t / (1 - t)
     dca = pd.DataFrame({"Umbral": ths, **{m: [nb(rec[m], t) for t in ths] for m in NOMBRES}, "Intervenir a todos": [prev - (1 - prev) * t / (1 - t) for t in ths]})

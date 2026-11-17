@@ -1,17 +1,7 @@
-"""Step 02 - Cohort, cleaning, outcome, train/test split, MICE imputation, descriptive tables and modelling datasets.
-
-Input : data/processed/nhanes_variables.csv (step 01) and data/raw/DIQ_L.xpt (step 00)
-Output: data/processed/{dataset_final,train_imputado,test_imputado,train_modelo,test_modelo}.csv
-        results/{tabla1_overall,normalidad_lilliefors,equivalencia_train_test}.csv and figures
-
-Code taken from the analysis notebook (notebooks/tesis_nhanes_corregido.ipynb), sections 3-11, with paths
-changed to the repository folders.
-
-NOTE: MICE (miceforest/LightGBM) is not bit-for-bit reproducible across LightGBM versions and platforms:
-observed values and the train/test split are identical, but some imputed values can differ slightly.
-To reproduce the exact numbers of the paper, use the datasets already provided in data/processed/
-and start from step 03.
-"""
+"""Paso 02: selecciona la cohorte, limpia los datos, define la resistencia a la insulina (HOMA-IR > 2,5),
+divide en entrenamiento y prueba (80/20), imputa los datos faltantes con MICE y genera la Tabla 1.
+Los valores imputados pueden cambiar un poco entre ejecuciones. Para obtener los números exactos del artículo,
+usa los archivos que ya están en data/processed/ y empieza desde el paso 04."""
 import os
 import time
 import random
@@ -40,27 +30,26 @@ import joblib
 
 from config import DATA, DATA_RAW, RESULTS, FIGURES, SEED
 
-display = lambda x, *a, **k: print(x)   # the original code ran in a notebook
+display = lambda x, *a, **k: print(x)   # el código original corría en un cuaderno
 
-# --- Reproducibilidad ---
+# seed
 random.seed(SEED)
 np.random.seed(SEED)
 
-# --- Paths (see config.py) ---
-RUTA_VARIABLES = DATA / "nhanes_variables.csv"      # step 01
-NHANES_DIR     = DATA_RAW                           # original .xpt files (step 00)
+# paths
+RUTA_VARIABLES = DATA / "nhanes_variables.csv"      # paso 01
+NHANES_DIR     = DATA_RAW                           # archivos .xpt originales (paso 00)
 RUTA_DIQ       = NHANES_DIR / "DIQ_L.xpt"           # diabetes questionnaire
 RESULTS_DIR    = RESULTS
 FIG_DIR        = FIGURES
 
-# --- Cohorte ---
+# cohort
 EDAD_MINIMA              = 18
 GLUCOSA_MAXIMA           = 126        # mg/dL; se conservan los participantes con glucosa <= 126
 UMBRAL_FALTANTES_FILA    = 20         # % máximo de datos faltantes por participante
 UMBRAL_FALTANTES_COLUMNA = 20         # % máximo de datos faltantes por variable
 
-# Códigos NHANES de "se negó a responder / no sabe", SOLO en las variables de cuestionario que los usan.
-# Verificar contra el codebook de cada módulo (DEMO_L, BPQ_L, DIQ_L, SMQ_L, ALQ_L, WHQ_L, PAQ_L).
+# códigos de NHANES para 'se negó a responder' / 'no sabe' (solo variables de cuestionario)
 CODIGOS_FALTANTES_POR_VARIABLE = {
     **{v: [7, 9] for v in ["NIVEL_EDUCATIVO", "DX_HIPERTENSION", "DX_HTA", "USO_ANTIHIPERTENSIVOS",
                            "DX_HIPERCOLESTEROLEMIA", "USO_HIPOLIPEMIANTES", "DX_PREDIABETES",
@@ -71,46 +60,46 @@ CODIGOS_FALTANTES_POR_VARIABLE = {
                                  "FRECUENCIA_ACTIVIDAD_VIGOROSA", "DURACION_ACTIVIDAD_VIGOROSA",
                                  "TIEMPO_SENTADO"]},
 }
-# pandas.read_sas lee los ceros de los archivos .xpt como 5.397605e-79: se restauran a 0
+# read_sas lee los ceros como 5.4e-79: se restauran a 0
 UMBRAL_CERO_SAS = 1e-10
 
-# --- Outcome ---
+# outcome
 TARGET        = "RESISTENCIA_INSULINA"
 HOMA_DIVISOR  = 405
 HOMA_IR_CORTE = 2.5                   # RI = 1 si HOMA-IR > 2.5
 
-# --- Partición, validación cruzada y búsqueda de hiperparámetros ---
+# partición, validación cruzada y búsqueda
 TEST_SIZE       = 0.2
 N_FOLDS         = 5
 N_ITER_BUSQUEDA = 50
 cv = StratifiedKFold(n_splits=N_FOLDS, shuffle=True, random_state=SEED)
 
-# --- Imputación MICE (miceforest) ---
+# MICE imputation
 MICE_N_DATASETS    = 5
 MICE_ITERACIONES   = 5
 MICE_DATASET_USADO = 0
 
-# --- Estadística descriptiva ---
+# descriptive statistics
 ALFA = 0.05
 N_BOOTSTRAP_NORMALIDAD = 2000
 
-# --- Multicolinealidad ---
+# multicollinearity
 UMBRAL_VIF = 10
 VARIABLES_PROTEGIDAS_VIF = ["IMC"]
 
-# --- Interpretabilidad (SHAP sobre una submuestra del ENTRENAMIENTO; el test no se usa para seleccionar) ---
+# SHAP
 N_SHAP = 458                          # mismo tamaño que el test (costo computacional de TabPFN)
 BUDGET_SHAP_TABPFN = 256
 UMBRAL_IMPORTANCIA_ACUMULADA = 0.85
 N_TOP_HEATMAP = 15
 
-# --- Curvas de decisión clínica ---
+# curva de decisións
 UMBRALES_DCA = np.round(np.arange(0.01, 1.00, 0.01), 2)
 UMBRALES_DCA_TABLA = [0.10, 0.20, 0.30, 0.40, 0.50, 0.60]
 
 ETIQUETAS_CLASES = ["Sin RI", "Con RI"]
 
-# --- Opciones de visualización ---
+# display options
 pd.set_option("display.max_columns", None)
 pd.set_option("display.max_rows", 200)
 pd.set_option("display.width", 250)
@@ -118,12 +107,11 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 def guardar_figura(nombre, dpi=300):
-    """Save the current figure in figures/."""
+    """Guarda la figura actual en figures/."""
     plt.savefig(FIG_DIR / nombre, dpi=dpi, bbox_inches="tight")
 
 FIG_DIR.mkdir(parents=True, exist_ok=True)
 
-# ---- notebook cell 11
 df = pd.read_csv(RUTA_VARIABLES)
 diabetes = pd.read_sas(RUTA_DIQ, format="xport", encoding="utf-8")[["SEQN", "DIQ010", "DIQ050", "DIQ070"]]
 
@@ -131,23 +119,22 @@ print(f"nhanes_variables.csv: {df.shape[0]} participantes × {df.shape[1]} colum
 print(f"DIQ_L.xpt:            {diabetes.shape[0]} participantes")
 assert df["SEQN"].is_unique, "SEQN duplicado en la base consolidada"
 
-# ---- notebook cell 14
 flujo_cohorte = [{"Paso": "Participantes en nhanes_variables.csv", "Excluidos": 0, "n restante": len(df)}]
 
 
 def aplicar_criterio(datos, conservar, descripcion):
-    """Conserva las filas donde `conservar` es True y registra el número de excluidos."""
+    """Conserva las filas donde `conservar` es True y registra cuántas se excluyeron."""
     n_antes = len(datos)
     datos = datos[conservar].copy()
     flujo_cohorte.append({"Paso": descripcion, "Excluidos": n_antes - len(datos), "n restante": len(datos)})
     return datos
 
 
-# Inclusión: insulina y glucosa en ayuno disponibles (necesarias para HOMA-IR)
+# inclusión: insulina y glucosa en ayunas
 muestra = aplicar_criterio(df, df[["INSULINA", "GLUCOSA"]].notna().all(axis=1),
                            "Sin insulina o glucosa en ayuno")
 
-# Exclusión: criterios clínicos (DIQ_L)
+# exclusion: clinical criteria
 muestra = muestra.merge(diabetes, on="SEQN", how="left")
 muestra = aplicar_criterio(muestra, muestra["EDAD"] >= EDAD_MINIMA, "Menores de 18 años")
 muestra = aplicar_criterio(muestra, muestra["DIQ010"] != 1, "Diagnóstico previo de diabetes (DIQ010 = 1)")
@@ -157,7 +144,6 @@ muestra = aplicar_criterio(muestra, muestra["GLUCOSA"] <= GLUCOSA_MAXIMA, "Gluco
 muestra = muestra.drop(columns=["DIQ010", "DIQ050", "DIQ070"])
 pd.DataFrame(flujo_cohorte)
 
-# ---- notebook cell 18
 conteo_codigos = {}
 for col, codigos in CODIGOS_FALTANTES_POR_VARIABLE.items():
     if col in muestra.columns:
@@ -168,14 +154,13 @@ for col, codigos in CODIGOS_FALTANTES_POR_VARIABLE.items():
 print("Códigos de no respuesta convertidos en NaN:")
 print(pd.Series(conteo_codigos)[lambda s: s > 0].to_string())
 
-# Valores 7/9/7777/9999 que ahora se CONSERVAN (la versión original los convertía en NaN)
+# se conservan los códigos 7/9/7777/9999
 otras_numericas = [c for c in muestra.select_dtypes(include=[np.number]).columns
                    if c not in CODIGOS_FALTANTES_POR_VARIABLE and c not in ["SEQN", "ETNIA"]]
 conservados = muestra[otras_numericas].isin([7, 9, 7777, 9999]).sum()
 print("\nMediciones reales iguales a 7/9/7777/9999 que se conservan:")
 print(conservados[conservados > 0].to_string())
 
-# ---- notebook cell 21
 columnas_numericas = muestra.select_dtypes(include=[np.number]).columns
 es_cero_sas = (muestra[columnas_numericas].abs() < UMBRAL_CERO_SAS) & (muestra[columnas_numericas] != 0)
 
@@ -183,12 +168,11 @@ print("Ceros SAS restaurados a 0, por variable:")
 print(es_cero_sas.sum()[lambda s: s > 0].to_string())
 muestra[columnas_numericas] = muestra[columnas_numericas].mask(es_cero_sas, 0.0)
 
-# Ingestas de 0 kcal son fisiológicamente implausibles: se informan, no se modifican
+# las ingestas de 0 kcal se informan, no se modifican
 n_cero_kcal = (muestra["INGESTA_CALORIAS"] == 0).sum()
 if n_cero_kcal:
     print(f"\n⚠ {n_cero_kcal} participantes con INGESTA_CALORIAS = 0 (recordatorio posiblemente no válido).")
 
-# ---- notebook cell 24
 pct_faltantes_fila = muestra.isnull().mean(axis=1) * 100
 muestra = aplicar_criterio(muestra, pct_faltantes_fila <= UMBRAL_FALTANTES_FILA,
                            f"> {UMBRAL_FALTANTES_FILA}% de datos faltantes")
@@ -196,7 +180,6 @@ muestra = aplicar_criterio(muestra, pct_faltantes_fila <= UMBRAL_FALTANTES_FILA,
 flujo_cohorte = pd.DataFrame(flujo_cohorte)
 flujo_cohorte
 
-# ---- notebook cell 29
 resumen_faltantes = pd.DataFrame({
     "n_faltantes": muestra.isna().sum(),
     "porcentaje_faltantes": (muestra.isna().mean() * 100).round(2),
@@ -205,7 +188,6 @@ print(f"Variables con al menos un faltante: {(resumen_faltantes['n_faltantes'] >
 display(resumen_faltantes[resumen_faltantes["n_faltantes"] > 0])
 resumen_faltantes.rename_axis('variable').to_csv(RESULTS_DIR / 'resumen_faltantes.csv')
 
-# ---- notebook cell 30
 faltantes_por_columna = muestra.isnull().mean() * 100
 columnas_excluidas_faltantes = faltantes_por_columna[faltantes_por_columna > UMBRAL_FALTANTES_COLUMNA].index.tolist()
 columnas_excluidas = list(dict.fromkeys(columnas_excluidas_faltantes + ["FRECUENCIA_ACTIVIDAD_VIGOROSA"]))
@@ -215,7 +197,6 @@ print(f"Variables excluidas por > {UMBRAL_FALTANTES_COLUMNA}% de faltantes ({len
       f"{columnas_excluidas_faltantes}")
 print(f"dataset_final: {dataset_final.shape[0]} filas × {dataset_final.shape[1]} columnas")
 
-# ---- notebook cell 33
 frecuencia = dataset_final["FRECUENCIA_ACTIVIDAD_MODERADA"]
 duracion = dataset_final["DURACION_ACTIVIDAD_MODERADA"]
 unidad = dataset_final["UNIDAD_ACTIVIDAD_MODERADA"]
@@ -233,7 +214,6 @@ print(dataset_final["ACTIVIDAD_MODERADA_MIN_SEMANA"].describe().round(2).to_stri
 
 dataset_final.to_csv(DATA / "dataset_final.csv", index=False)
 
-# ---- notebook cell 35
 variables_varianza_cero = dataset_final.columns[dataset_final.nunique(dropna=True) <= 1].tolist()
 df_para_mcar = dataset_final.drop(columns=variables_varianza_cero + ["SEQN"])
 
@@ -242,7 +222,6 @@ print(f"Variables en el test: {df_para_mcar.shape[1]} (excluidas: {variables_var
 print(f"Test de Little: p = {p_mcar:.4g} → "
       + ("se rechaza MCAR" if p_mcar < ALFA else "no se rechaza MCAR"))
 
-# ---- notebook cell 39
 dataset_final["HOMA_IR"] = (dataset_final["GLUCOSA"] * dataset_final["INSULINA"]) / HOMA_DIVISOR
 assert dataset_final["HOMA_IR"].notna().all(), "Hay participantes sin HOMA-IR: el outcome quedaría mal definido"
 dataset_final[TARGET] = (dataset_final["HOMA_IR"] > HOMA_IR_CORTE).astype(int)
@@ -251,8 +230,7 @@ print(dataset_final[["GLUCOSA", "INSULINA", "HOMA_IR"]].describe().round(2).T.to
 distribucion = dataset_final[TARGET].value_counts().sort_index()
 print(pd.DataFrame({"n": distribucion, "%": (distribucion / len(dataset_final) * 100).round(1)}).to_string())
 
-# ---- notebook cell 41
-# dominio: ([categóricas], [cuantitativas])
+# domain: (categorical, quantitative)
 VARIABLES_POR_DOMINIO = {
     "Demográficas":             (["GENERO", "ETNIA", "NIVEL_EDUCATIVO"], ["EDAD"]),
     "Antropométricas":          ([], ["PESO", "ALTURA", "IMC", "CINTURA", "BRAZO", "CADERA"]),
@@ -270,7 +248,7 @@ VARIABLES_POR_DOMINIO = {
 VARS_CATEGORICAS   = [v for categoricas, _ in VARIABLES_POR_DOMINIO.values() for v in categoricas]
 VARS_CUANTITATIVAS = [v for _, cuantitativas in VARIABLES_POR_DOMINIO.values() for v in cuantitativas]
 
-# GLUCOSA, INSULINA y HOMA_IR definen el outcome: solo se describen, nunca se usan como predictores
+# glucosa, insulina y HOMA-IR definen el desenlace: solo se describen, nunca son predictores
 COLUMNAS_DESENLACE = ["GLUCOSA", "INSULINA", "HOMA_IR"]
 VARS_CUANTITATIVAS_PREDICTORAS = [v for v in VARS_CUANTITATIVAS if v not in COLUMNAS_DESENLACE]
 
@@ -285,12 +263,11 @@ ETIQUETAS = {
                                        "INTENTO_PERDIDA_PESO"]},
 }
 
-# Todas las variables del estudio deben estar presentes
+# all study variables must be present
 faltan = set(VARS_CATEGORICAS + VARS_CUANTITATIVAS) - set(dataset_final.columns)
 assert not faltan, f"Variables del estudio excluidas por faltantes: {faltan}"
 
-# Variables que ahora superan el filtro de faltantes pero no forman parte del conjunto aprobado en la tesis:
-# se excluyen para no cambiar las variables seleccionadas (decisión a consultar, ver sección 18)
+# variables que pasan el filtro de faltantes pero no están en el conjunto de la tesis: se excluyen
 no_previstas = sorted(set(dataset_final.columns) - set(VARS_CATEGORICAS + VARS_CUANTITATIVAS) - {"SEQN", TARGET})
 if no_previstas:
     print(f"⚠ Variables no previstas que superan el filtro de faltantes (se excluyen): {no_previstas}")
@@ -300,7 +277,6 @@ pd.DataFrame([(dominio, "Categórica", v) for dominio, (cat, _) in VARIABLES_POR
              [(dominio, "Cuantitativa", v) for dominio, (_, cuant) in VARIABLES_POR_DOMINIO.items() for v in cuant],
              columns=["Dominio", "Tipo", "Variable"]).sort_values(["Dominio", "Tipo"], kind="stable")
 
-# ---- notebook cell 44
 train_df, test_df = train_test_split(
     dataset_final, test_size=TEST_SIZE, stratify=dataset_final[TARGET], random_state=SEED
 )
@@ -309,21 +285,20 @@ print(f"Train: {len(train_df)} ({len(train_df)/len(dataset_final):.1%})  |  Test
 pd.DataFrame({"Train": train_df[TARGET].value_counts(normalize=True).round(3),
               "Test": test_df[TARGET].value_counts(normalize=True).round(3)})
 
-# ---- notebook cell 47
 COLUMNAS_FUERA_DE_IMPUTACION = ["SEQN", TARGET] + COLUMNAS_DESENLACE
 assert train_df[COLUMNAS_DESENLACE + [TARGET]].notna().all().all()
 
 train_predictores = train_df.drop(columns=COLUMNAS_FUERA_DE_IMPUTACION).reset_index(drop=True)
 test_predictores = test_df.drop(columns=COLUMNAS_FUERA_DE_IMPUTACION).reset_index(drop=True)
 
-# Kernel ajustado SOLO con los predictores del entrenamiento (sin outcome)
+# modelo de imputación ajustado solo con los predictores del entrenamiento
 kernel = mf.ImputationKernel(train_predictores, num_datasets=MICE_N_DATASETS, random_state=SEED)
 kernel.mice(iterations=MICE_ITERACIONES)
 test_kernel = kernel.impute_new_data(new_data=test_predictores, random_state=SEED)
 
 
 def reincorporar_desenlace(imputado, original):
-    """Agrega de nuevo el outcome y sus componentes (no imputados) en el orden original de columnas."""
+    """Agrega de nuevo el desenlace y sus componentes (sin imputar), en el orden original de columnas."""
     completo = imputado.copy()
     for col in COLUMNAS_DESENLACE + [TARGET]:
         completo[col] = original[col].to_numpy()
@@ -335,9 +310,7 @@ test_imputado = reincorporar_desenlace(test_kernel.complete_data(dataset=MICE_DA
 print(f"Train imputado: {train_imputado.shape} | NaN restantes: {train_imputado.isna().sum().sum()}")
 print(f"Test imputado:  {test_imputado.shape} | NaN restantes: {test_imputado.isna().sum().sum()}")
 
-# ---- notebook cell 48
-# NaN residuales en el test tras impute_new_data: se completan con la mediana (continuas)
-# o la moda (binarias) del conjunto de ENTRENAMIENTO imputado
+# NaN restantes en prueba: se completan con la mediana (continuas) o la moda (binarias) del entrenamiento
 for col in test_imputado.columns[test_imputado.isna().any()]:
     n_afectados = test_imputado[col].isna().sum()
     if pd.api.types.is_numeric_dtype(train_imputado[col]) and train_imputado[col].nunique() > 2:
@@ -352,14 +325,12 @@ assert test_imputado.isna().sum().sum() == 0
 train_imputado.to_csv(DATA / "train_imputado.csv", index=False)
 test_imputado.to_csv(DATA / "test_imputado.csv", index=False)
 
-# ---- notebook cell 52
 muestra_analitica = pd.concat([train_imputado, test_imputado], axis=0, ignore_index=True)
 print(f"Muestra analítica: {muestra_analitica.shape[0]} participantes")
 print(muestra_analitica[TARGET].value_counts().sort_index().to_string())
 
-# ---- notebook cell 57
 def normalidad_lilliefors(serie, n_bootstrap=N_BOOTSTRAP_NORMALIDAD, seed=SEED):
-    """Estadístico D y valor p de Lilliefors. Con n_bootstrap > 0 agrega el IC 95 % bootstrap de D."""
+    """Estadístico D de Lilliefors y valor p (con IC del 95 % por bootstrap de D si n_bootstrap > 0)."""
     datos = serie.dropna().values
     d_stat, p_valor = lilliefors(datos, dist="norm")
     resultado = {"D": d_stat, "p_valor": p_valor, "es_normal": p_valor > ALFA}
@@ -372,7 +343,7 @@ def normalidad_lilliefors(serie, n_bootstrap=N_BOOTSTRAP_NORMALIDAD, seed=SEED):
 
 
 def comparar_categorica(tabla):
-    """Chi-cuadrado; en tablas 2×2 con alguna frecuencia esperada < 5 se usa la prueba exacta de Fisher."""
+    """Chi-cuadrado (prueba exacta de Fisher en tablas 2x2 con frecuencia esperada < 5)."""
     _, p_chi2, _, esperadas = stats.chi2_contingency(tabla)
     if tabla.shape == (2, 2) and (esperadas < 5).any():
         return stats.fisher_exact(tabla)[1], "Fisher exacto"
@@ -380,7 +351,7 @@ def comparar_categorica(tabla):
 
 
 def comparar_cuantitativa(grupo_a, grupo_b):
-    """t de Student / Welch (según Levene) si ambos grupos son normales por Lilliefors; si no, Mann-Whitney U."""
+    """Prueba t (Student o Welch) si ambos grupos son normales; si no, Mann-Whitney U."""
     grupo_a, grupo_b = grupo_a.dropna(), grupo_b.dropna()
     es_normal = (normalidad_lilliefors(grupo_a, n_bootstrap=0)["es_normal"]
                  and normalidad_lilliefors(grupo_b, n_bootstrap=0)["es_normal"])
@@ -392,7 +363,7 @@ def comparar_cuantitativa(grupo_a, grupo_b):
 
 
 def resumir_cuantitativa(serie, es_normal):
-    """Media ± DE si la distribución es normal; mediana [RIC] en caso contrario."""
+    """Mean ± SD if normal, otherwise median [IQR]."""
     serie = serie.dropna()
     if es_normal:
         return f"{serie.mean():.2f} ± {serie.std():.2f}"
@@ -401,7 +372,7 @@ def resumir_cuantitativa(serie, es_normal):
 
 
 def resumir_categoria(serie, codigo):
-    """n (%) de la categoría `codigo` respecto al total del grupo."""
+    """n (%) de la categoría `codigo` en el grupo."""
     n, total = (serie == codigo).sum(), len(serie)
     return f"{n} ({n / total * 100:.1f}%)" if total else "0 (0.0%)"
 
@@ -409,7 +380,6 @@ def resumir_categoria(serie, codigo):
 def grupos_por_desenlace(df, var):
     return df.loc[df[TARGET] == 0, var], df.loc[df[TARGET] == 1, var]
 
-# ---- notebook cell 59
 def graficar_normalidad(df, var):
     grupo0, grupo1 = (g.dropna() for g in grupos_por_desenlace(df, var))
     r0, r1 = normalidad_lilliefors(grupo0, n_bootstrap=0), normalidad_lilliefors(grupo1, n_bootstrap=0)
@@ -433,8 +403,7 @@ def graficar_normalidad(df, var):
 for var in VARS_CUANTITATIVAS:
     graficar_normalidad(train_imputado, var)
 
-# ---- notebook cell 60
-# Tabla de normalidad (Lilliefors con IC 95 % bootstrap del estadístico D)
+# normality table (Lilliefors)
 filas_normalidad = []
 for var in VARS_CUANTITATIVAS:
     for conjunto, df_ref in [("Overall", muestra_analitica), ("Train", train_imputado), ("Test", test_imputado)]:
@@ -453,7 +422,6 @@ tabla_normalidad = pd.DataFrame(filas_normalidad)
 tabla_normalidad.to_csv(RESULTS_DIR / "normalidad_lilliefors.csv", index=False)
 tabla_normalidad
 
-# ---- notebook cell 63
 def construir_tabla_1(df, prefijo):
     """Resumen por grupo (Sin RI / Con RI) y valor p de la asociación con el desenlace."""
     filas = []
@@ -479,7 +447,7 @@ def construir_tabla_1(df, prefijo):
 tabla1_overall = construir_tabla_1(muestra_analitica, "Overall")
 tabla1_overall.to_csv(RESULTS_DIR / "tabla1_overall.csv", index=False)
 
-# Tabla 1 extendida (overall + train + test), tal como la describe el texto anterior
+# Table 1 (overall, train, test)
 tabla1_extendida = pd.concat(
     [tabla1_overall,
      construir_tabla_1(train_imputado, "Train").drop(columns=["Variable", "Categoria"]),
@@ -488,7 +456,6 @@ tabla1_extendida = pd.concat(
 )
 tabla1_overall
 
-# ---- notebook cell 65
 conjunto = pd.Series(np.r_[np.zeros(len(train_imputado)), np.ones(len(test_imputado))], name="CONJUNTO")
 
 filas_traintest = []
@@ -510,7 +477,6 @@ tabla_traintest = pd.DataFrame(filas_traintest)
 tabla_traintest.to_csv(RESULTS_DIR / "equivalencia_train_test.csv", index=False)
 tabla_traintest
 
-# ---- notebook cell 68
 def calcular_vif(df, variables):
     X = add_constant(df[variables])
     vif = pd.DataFrame({"Variable": X.columns,
@@ -537,13 +503,12 @@ variables_vif, eliminadas_vif, vif_final = eliminar_multicolinealidad(
 COLUMNAS_ELIMINADAS_VIF = [e["Variable"] for e in eliminadas_vif]
 print(f"Variables cuantitativas evaluadas: {len(VARS_CUANTITATIVAS_PREDICTORAS)}")
 print(f"Eliminadas por VIF > {UMBRAL_VIF}: {eliminadas_vif}")
-# Height is excluded because it is implicit in BMI (weight / height^2); see Methods 2.6
+# la altura se excluye (está implícita en el IMC)
 COLUMNAS_ELIMINADAS_VIF = COLUMNAS_ELIMINADAS_VIF + ["ALTURA"]
 if set(COLUMNAS_ELIMINADAS_VIF) != {"COLESTEROL_TOTAL", "PESO", "ALTURA"}:
     print("⚠ Difiere de la versión original, que excluía COLESTEROL_TOTAL, PESO y ALTURA.")
 vif_final
 
-# ---- notebook cell 71
 COLUMNAS_NO_PREDICTORAS = COLUMNAS_DESENLACE + COLUMNAS_ELIMINADAS_VIF + [TARGET]
 CATEGORIAS_ETNIA = {float(codigo): "ETNIA_" + etiqueta.replace(" / ", "_").replace(" ", "_")
                     for codigo, etiqueta in ETIQUETAS["ETNIA"].items()}

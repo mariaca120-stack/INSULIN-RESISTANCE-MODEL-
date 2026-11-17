@@ -1,4 +1,4 @@
-"""Figuras S4 (curvas de codo) y S5 (compromiso parsimonia-desempeño) con las importancias SHAP en probabilidad."""
+"""Paso 11c: figuras suplementarias S4 y S5."""
 from pathlib import Path
 import locale
 import matplotlib
@@ -9,7 +9,7 @@ from config import ROOT as BASE, DATA, DATA as D, MODELS, RESULTS as R, FIGURES 
 
 
 try:
-    locale.setlocale(locale.LC_NUMERIC, "es_ES.UTF-8")   # decimal comma in the figures (optional)
+    locale.setlocale(locale.LC_NUMERIC, "es_ES.UTF-8")   # coma decimal en las figuras (opcional)
 except locale.Error:
     pass
 plt.rcParams.update({"font.family": "Arial", "axes.formatter.use_locale": True})
@@ -31,14 +31,14 @@ for ax, (m, nom) in zip(axes, M):
 axes[0].set_ylabel("Importancia SHAP acumulada (proporción)")
 plt.tight_layout(); plt.savefig(F / "FiguraS4_codo_shap.png", dpi=300, bbox_inches="tight"); plt.close()
 
-# --- S5
+# S5
 cv = pd.read_csv(R / "tabla_metricas_cv.csv", header=[0, 1], index_col=0)
 filas = {"Random Forest": "RF", "XGBoost": "XGBoost", "TabPFN": "TabPFN"}
 nombres = list(filas)
 auc = [cv.loc[filas[n], ("AUC-ROC", "Promedio")] for n in nombres]
 f1 = [cv.loc[filas[n], ("F1-Score", "Promedio")] for n in nombres]
 nv = [n_vars[n] for n in nombres]
-# consenso = intersección de los tres paneles de 85 %
+# consenso = intersección de los tres conjuntos del 85 %
 sel = {m: set(imp[f"mean_abs_shap_{m}"].sort_values(ascending=False).index[: n_vars[nom]]) for m, nom in M}
 n_cons = len(sel["rf"] & sel["xgb"] & sel["tabpfn"]); cons_pct = [round(n_cons / n * 100, 1) for n in nv]
 print("consenso", n_cons, cons_pct, auc, f1)

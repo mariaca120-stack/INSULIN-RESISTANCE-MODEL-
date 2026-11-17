@@ -1,8 +1,4 @@
-"""Histogramas y gráficos cuantil-cuantil (Q-Q) de las 34 variables cuantitativas, por grupo de resistencia a la
-insulina, en la muestra analítica (entrenamiento + prueba tras la imputación; n = 2285). Cuatro variables por página.
-
-Se ejecuta con el Python de Anaconda (necesita statsmodels): /opt/anaconda3/bin/python figuras_qq.py
-"""
+"""Paso 11g: histogramas y gráficos Q-Q de las variables cuantitativas."""
 import locale
 from pathlib import Path
 
@@ -19,7 +15,7 @@ from config import ROOT as BASE, DATA, DATA as D, MODELS, RESULTS as R, FIGURES 
 FIG = F / 'qq'
 FIG.mkdir(parents=True, exist_ok=True)
 try:
-    locale.setlocale(locale.LC_NUMERIC, "es_ES.UTF-8")   # decimal comma in the figures (optional)
+    locale.setlocale(locale.LC_NUMERIC, "es_ES.UTF-8")   # coma decimal en las figuras (opcional)
 except locale.Error:
     pass
 plt.rcParams.update({"font.family": "Arial", "font.size": 8, "axes.formatter.use_locale": True,
@@ -80,7 +76,7 @@ for pagina, inicio in enumerate(range(0, len(VARIABLES), POR_PAGINA), start=1):
     plt.close()
     print(f"página {pagina}: {[v for v, _ in bloque]}")
 
-# Comparación con la Tabla S3 (Lilliefors en Colab, conjunto "Overall")
+# comparación con la Tabla S3
 ref = pd.read_csv(R / "normalidad_lilliefors.csv")
 ref = ref[ref.Conjunto == "Overall"].set_index(["Variable", "Grupo"])["D"]
 dif = max(abs(dd - ref[(v, "Sin_RI" if g == "Sin RI" else "Con_RI")]) for v, g, dd, _ in resumen)

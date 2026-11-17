@@ -1,7 +1,7 @@
-"""SHAP en escala de PROBABILIDAD calculado con TODO el conjunto de entrenamiento (n = 1828), para RF, XGBoost y TabPFN.
-Salidas NUEVAS (no pisa nada): resultados/shap_todo_prob_{rf,xgb,tabpfn}.npy (1828 x 43), resultados/consenso_todo.json y
-resultados/shap_todo_consenso_prob_{rf,xgb,tabpfn}.npy (1828 x variables de consenso, en el orden del ranking de RF).
-    rf43 | xgb43 | tabpfn43 | consenso_arboles | tabpfn_consenso      (XGBoost y PyTorch no deben compartir proceso en macOS)"""
+"""Paso 08: valores SHAP (escala de probabilidad) de random forest, XGBoost y TabPFN en todo el conjunto de
+entrenamiento, y panel de variables de consenso.
+
+    python pipeline/08_shap_full_training_set.py rf43 | xgb43 | tabpfn43 | consenso_arboles | tabpfn_consenso"""
 import copy, json, os, sys, time
 from pathlib import Path
 from config import ROOT as BASE, DATA, DATA as D, MODELS, RESULTS as R, FIGURES as F, FIGURES as FIG

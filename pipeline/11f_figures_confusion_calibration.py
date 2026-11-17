@@ -1,9 +1,4 @@
-"""Step 11f - Supplementary Figure S1 (confusion matrices, recalibrated probabilities, threshold 0.5) and
-Supplementary Figure S9 (calibration by deciles of predicted probability, before and after recalibration).
-
-Input : results/probabilidades_test.csv (step 04) and results/probabilidades_test_recal.csv (step 06)
-Output: figures/FiguraS1_matrices_confusion.png, figures/FiguraS9_calibracion_antes_despues.png
-"""
+"""Paso 11f: figuras suplementarias S1 (matrices de confusión) y S9 (calibración por deciles)."""
 import locale
 
 import matplotlib
@@ -32,7 +27,7 @@ def coma(v, dec=2):
     return f"{v:.{dec}f}".replace(".", ",")
 
 
-# ---- Figure S1: confusion matrices
+# Figure S1
 fig, ax = plt.subplots(2, 2, figsize=(8, 7.2))
 for a, m in zip(ax.ravel(), MODELOS):
     pred = (recal[m].to_numpy() >= 0.5).astype(int)
@@ -53,7 +48,7 @@ plt.tight_layout()
 plt.savefig(FIGURES / "FiguraS1_matrices_confusion.png", dpi=300, bbox_inches="tight")
 plt.close()
 
-# ---- Figure S9: calibration by deciles, before and after recalibration
+# Figure S9
 def deciles(p):
     q = pd.qcut(p, 10, labels=False, duplicates="drop")
     g = pd.DataFrame({"p": p, "y": y, "q": q}).groupby("q").mean()
@@ -77,4 +72,4 @@ ax[0].set_ylabel("Proporción observada de RI")
 plt.tight_layout()
 plt.savefig(FIGURES / "FiguraS9_calibracion_antes_despues.png", dpi=300, bbox_inches="tight")
 plt.close()
-print("Figures S1 and S9 saved in", FIGURES)
+print("Figuras S1 y S9 guardadas en", FIGURES)

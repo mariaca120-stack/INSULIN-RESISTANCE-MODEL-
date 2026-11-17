@@ -1,9 +1,5 @@
-"""Step 03 - Train Random Forest, SVM and XGBoost (randomized search, 50 combinations, stratified 5-fold CV, AUC-ROC).
-
-Input : data/processed/train_modelo.csv (step 02, or the file provided in the repository)
-Output: models/modelo_{random_forest,svm,xgboost}.pkl and results/hiperparametros.json
-TabPFN needs no hyperparameter search; it is fitted in step 04.
-"""
+"""Paso 03 (opcional): entrena random forest, SVM y XGBoost con búsqueda aleatoria (validación cruzada de 5 particiones).
+Los modelos usados en el artículo ya están en models/."""
 import json
 import random
 import warnings
@@ -30,11 +26,10 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 train = pd.read_csv(DATA / "train_modelo.csv")
 X_train, y_train = train.drop(columns=[TARGET]), train[TARGET].astype(int)
 
-# ----
 conteo = y_train.value_counts().sort_index()
 print(pd.DataFrame({"n": conteo, "%": (conteo / len(y_train) * 100).round(1)}).to_string(), "\n")
 
-# Ponderación de clases (sin SMOTE; el conjunto de prueba nunca se modifica)
+# ponderación de clases en lugar de SMOTE
 clases = np.unique(y_train)
 class_weights = dict(zip(clases.tolist(),
                          compute_class_weight(class_weight="balanced", classes=clases, y=y_train).tolist()))
@@ -43,7 +38,6 @@ scale_pos_weight = (y_train == 0).sum() / (y_train == 1).sum()   # equivalente p
 print(f"class_weight (RF, SVM): {class_weights}")
 print(f"scale_pos_weight (XGBoost): {scale_pos_weight:.4f}")
 
-# ----
 def buscar_hiperparametros(nombre, estimador, espacio, X, y):
     busqueda = RandomizedSearchCV(estimator=estimador, param_distributions=espacio, n_iter=N_ITER_BUSQUEDA,
                                   scoring="roc_auc", cv=cv, random_state=SEED, n_jobs=-1, verbose=1)
@@ -52,7 +46,6 @@ def buscar_hiperparametros(nombre, estimador, espacio, X, y):
     print(f"{nombre} – AUC-ROC medio en CV: {busqueda.best_score_:.4f}")
     return busqueda
 
-# ----
 busqueda_rf = buscar_hiperparametros(
     "Random Forest",
     RandomForestClassifier(class_weight=class_weights, random_state=SEED, n_jobs=-1),
@@ -62,7 +55,6 @@ busqueda_rf = buscar_hiperparametros(
 )
 rf = busqueda_rf.best_estimator_
 
-# ----
 busqueda_svm = buscar_hiperparametros(
     "SVM",
     Pipeline([("scaler", StandardScaler()),
@@ -74,7 +66,6 @@ busqueda_svm = buscar_hiperparametros(
 svm = busqueda_svm.best_estimator_
 print(f"Kernel seleccionado: {busqueda_svm.best_params_['svc__kernel']}")
 
-# ----
 busqueda_xgb = buscar_hiperparametros(
     "XGBoost",
     XGBClassifier(scale_pos_weight=scale_pos_weight, eval_metric="logloss", random_state=SEED, n_jobs=-1),
@@ -85,7 +76,7 @@ busqueda_xgb = buscar_hiperparametros(
 )
 xgb = busqueda_xgb.best_estimator_
 
-# ---- save models and selected hyperparameters
+# guardar los modelos
 for nombre_archivo, objeto in [("modelo_random_forest.pkl", rf), ("modelo_svm.pkl", svm), ("modelo_xgboost.pkl", xgb)]:
     joblib.dump(objeto, MODELS / nombre_archivo)
 hiperparametros = {
@@ -94,4 +85,4 @@ hiperparametros = {
     "XGB": {**busqueda_xgb.best_params_, "scale_pos_weight": float(scale_pos_weight)},
 }
 json.dump(hiperparametros, open(RESULTS / "hiperparametros.json", "w"), indent=1, default=lambda o: o.item() if hasattr(o, "item") else str(o))
-print("Models saved in", MODELS)
+print("Modelos guardados en", MODELS)

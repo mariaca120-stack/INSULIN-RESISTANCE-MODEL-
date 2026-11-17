@@ -1,6 +1,4 @@
-"""Métricas del conjunto de prueba con probabilidades recalibradas: mismas columnas que metricas_test_ic95.csv.
-AUC-ROC y AUC-PR no cambian (la recalibración es monótona; se copian). Sensibilidad, especificidad, VPP, VPN y F1 con umbral 0,5 y Brier se recalculan
-con IC 95 % por bootstrap estratificado por clase (2000 réplicas, semilla 42)."""
+"""Paso 07: métricas del conjunto de prueba con las probabilidades recalibradas (IC del 95 % por bootstrap)."""
 from pathlib import Path
 import numpy as np, pandas as pd
 from sklearn.metrics import brier_score_loss, average_precision_score, roc_auc_score
