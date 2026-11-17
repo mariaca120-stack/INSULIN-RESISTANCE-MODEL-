@@ -1,5 +1,4 @@
-"""Paso 03 (opcional): entrena random forest, SVM y XGBoost con búsqueda aleatoria (validación cruzada de 5 particiones).
-Los modelos usados en el artículo ya están en models/."""
+"""Paso 03: entrena random forest, SVM y XGBoost
 import json
 import random
 import warnings
