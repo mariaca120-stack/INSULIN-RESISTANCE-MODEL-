@@ -10,7 +10,7 @@ from config import ROOT as BASE, DATA, DATA as D, MODELS, RESULTS as R, FIGURES 
 
 
 
-SEED, TARGET, N_SHAP, UMBRAL = 42, "RESISTENCIA_INSULINA", 458, 0.85
+SEED, TARGET, N_SHAP, UMBRAL = 42, "RESISTENCIA_INSULINA", 1828, 0.85
 try:
     locale.setlocale(locale.LC_NUMERIC, "es_ES.UTF-8")   # coma decimal en las figuras (opcional)
 except locale.Error:

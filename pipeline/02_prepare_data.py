@@ -88,12 +88,12 @@ UMBRAL_VIF = 10
 VARIABLES_PROTEGIDAS_VIF = ["IMC"]
 
 # SHAP
-N_SHAP = 458                          # mismo tamaño que el test (costo computacional de TabPFN)
+N_SHAP = 1828                         # SHAP con todo el conjunto de entrenamiento
 BUDGET_SHAP_TABPFN = 256
 UMBRAL_IMPORTANCIA_ACUMULADA = 0.85
 N_TOP_HEATMAP = 15
 
-# curva de decisións
+# curvas de decisión
 UMBRALES_DCA = np.round(np.arange(0.01, 1.00, 0.01), 2)
 UMBRALES_DCA_TABLA = [0.10, 0.20, 0.30, 0.40, 0.50, 0.60]
 

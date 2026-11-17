@@ -16,7 +16,7 @@ import shap
 from config import ROOT as BASE, DATA, DATA as D, MODELS, RESULTS as R, FIGURES as F, FIGURES as FIG
 
 
-SEED, TARGET, N_SHAP = 42, "RESISTENCIA_INSULINA", 458
+SEED, TARGET, N_SHAP = 42, "RESISTENCIA_INSULINA", 1828
 
 try:
     locale.setlocale(locale.LC_NUMERIC, "es_ES.UTF-8")   # coma decimal en las figuras (opcional)
